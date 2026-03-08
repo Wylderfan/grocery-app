@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Edit Recipe — {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('recipes.index') }}" class="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Recipes</a>
+    <h1 class="text-2xl font-bold">Edit Recipe</h1>
+  </div>
+
+  <form method="post" class="flex flex-col gap-5">
+
+    <div>
+      <label for="name" class="block text-sm text-gray-400 mb-1">
+        Name <span class="text-red-400">*</span>
+      </label>
+      <input type="text" id="name" name="name" required autofocus
+             value="{{ recipe.name }}"
+             class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                    focus:outline-none focus:border-indigo-500 transition-colors">
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm text-gray-400 mb-1">Description</label>
+      <textarea id="description" name="description" rows="2"
+                class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                       focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                >{{ recipe.description or '' }}</textarea>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4">
+      <div>
+        <label for="servings" class="block text-sm text-gray-400 mb-1">Servings</label>
+        <input type="number" id="servings" name="servings" min="1"
+               value="{{ recipe.servings or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="prep_time_min" class="block text-sm text-gray-400 mb-1">Prep (min)</label>
+        <input type="number" id="prep_time_min" name="prep_time_min" min="0"
+               value="{{ recipe.prep_time_min or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="cook_time_min" class="block text-sm text-gray-400 mb-1">Cook (min)</label>
+        <input type="number" id="cook_time_min" name="cook_time_min" min="0"
+               value="{{ recipe.cook_time_min or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="category" class="block text-sm text-gray-400 mb-1">Category</label>
+        <input type="text" id="category" name="category"
+               value="{{ recipe.category or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors"
+               placeholder="Breakfast, Dinner, Snack…">
+      </div>
+      <div>
+        <label for="status" class="block text-sm text-gray-400 mb-1">Status</label>
+        <select id="status" name="status"
+                class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                       focus:outline-none focus:border-indigo-500 transition-colors">
+          {% for s in ["Active", "Archived"] %}
+          <option value="{{ s }}" {{ 'selected' if recipe.status == s else '' }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Star rating widget pre-filled -->
+    <div>
+      <label class="block text-sm text-gray-400 mb-2">Rating</label>
+      <div class="flex gap-1">
+        {% set cur_rating = recipe.rating or 0 %}
+        {% for i in range(1, 6) %}
+        <button type="button"
+                class="star-btn text-2xl {{ 'text-yellow-400' if i <= cur_rating else 'text-gray-600' }} hover:text-yellow-400 transition-colors leading-none"
+                data-group="rating" data-val="{{ i }}">★</button>
+        {% endfor %}
+      </div>
+      <input type="hidden" id="rating-val" name="rating" value="{{ recipe.rating or '' }}">
+    </div>
+
+    <div>
+      <label for="instructions" class="block text-sm text-gray-400 mb-1">Instructions</label>
+      <textarea id="instructions" name="instructions" rows="5"
+                class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                       focus:outline-none focus:border-indigo-500 transition-colors resize-y"
+                >{{ recipe.instructions or '' }}</textarea>
+    </div>
+
+    <!-- Ingredients builder — pre-populated with existing ingredients -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-sm text-gray-400">Ingredients</label>
+        <button type="button" id="add-ing"
+                class="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors">
+          + Add Row
+        </button>
+      </div>
+
+      <div id="ing-list" class="flex flex-col gap-2">
+        <!-- Pre-populated existing ingredients -->
+        {% for ing in recipe.ingredients %}
+        <div class="ing-row grid grid-cols-12 gap-2 items-center">
+          <input type="text" name="ing_name" value="{{ ing.name }}"
+                 class="col-span-4 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors">
+          <input type="number" name="ing_qty" value="{{ ing.quantity or '' }}" step="0.01" min="0"
+                 class="col-span-2 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors">
+          <input type="text" name="ing_unit" value="{{ ing.unit or '' }}"
+                 class="col-span-2 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors">
+          <select name="ing_grocery_id"
+                  class="col-span-3 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                         focus:outline-none focus:border-indigo-500 transition-colors">
+            <option value="">— grocery link —</option>
+            {% for g in groceries %}
+            <option value="{{ g.id }}" {{ 'selected' if ing.grocery_id == g.id else '' }}>{{ g.name }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="remove-ing col-span-1 text-gray-500 hover:text-red-400 transition-colors text-lg leading-none">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+
+      <p class="text-xs text-gray-600 mt-2">Removed rows won't be saved. Leave empty rows blank to skip.</p>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit"
+              class="px-5 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+        Save Changes
+      </button>
+      <a href="{{ url_for('recipes.index') }}"
+         class="px-5 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 transition-colors">
+        Cancel
+      </a>
+    </div>
+
+  </form>
+
+  <!-- Delete -->
+  <div class="mt-8 pt-6 border-t border-gray-800">
+    <form method="post" action="{{ url_for('recipes.delete', recipe_id=recipe.id) }}"
+          onsubmit="return confirm('Delete \'{{ recipe.name }}\'? This will also remove all ingredients.')">
+      <button class="px-4 py-2 bg-red-900 hover:bg-red-800 rounded text-sm text-red-200 transition-colors">
+        Delete Recipe
+      </button>
+    </form>
+  </div>
+
+</div>
+
+<!-- Template for new ingredient rows -->
+<template id="ing-template">
+  <div class="ing-row grid grid-cols-12 gap-2 items-center">
+    <input type="text" name="ing_name" placeholder="Ingredient name"
+           class="col-span-4 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                  focus:outline-none focus:border-indigo-500 transition-colors">
+    <input type="number" name="ing_qty" placeholder="Qty" step="0.01" min="0"
+           class="col-span-2 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                  focus:outline-none focus:border-indigo-500 transition-colors">
+    <input type="text" name="ing_unit" placeholder="Unit"
+           class="col-span-2 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                  focus:outline-none focus:border-indigo-500 transition-colors">
+    <select name="ing_grocery_id"
+            class="col-span-3 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-sm text-gray-100
+                   focus:outline-none focus:border-indigo-500 transition-colors">
+      <option value="">— grocery link —</option>
+      {% for g in groceries %}
+      <option value="{{ g.id }}">{{ g.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="button" class="remove-ing col-span-1 text-gray-500 hover:text-red-400 transition-colors text-lg leading-none">✕</button>
+  </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+var ingList     = document.getElementById('ing-list');
+var ingTemplate = document.getElementById('ing-template');
+
+document.getElementById('add-ing').addEventListener('click', function () {
+  var clone = ingTemplate.content.cloneNode(true);
+  ingList.appendChild(clone);
+});
+
+ingList.addEventListener('click', function (e) {
+  if (e.target.classList.contains('remove-ing')) {
+    e.target.closest('.ing-row').remove();
+  }
+});
+</script>
+{% endblock %}

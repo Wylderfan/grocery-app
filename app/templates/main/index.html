@@ -1,66 +1,97 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — {{ config.APP_NAME }}{% endblock %}
 
-{% from "macros.html" import stars %}
-
 {% block content %}
 <h1 class="text-2xl font-bold mb-8">Dashboard</h1>
 
-<!-- Stat cards — copy this grid to add metrics for your own models.
-     Color convention used here: gray = total, green = active/in-progress, blue = done/complete.
-     Each card is just a query result dropped into a styled div. -->
-<div class="grid grid-cols-3 gap-4 mb-10">
+<!-- Stat cards -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
 
   <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
-    <span class="text-3xl font-bold text-gray-300">{{ item_count }}</span>
-    <span class="text-sm text-gray-500">Total Items</span>
+    <span class="text-3xl font-bold text-green-400">{{ groceries_needed }}</span>
+    <span class="text-sm text-gray-500">Groceries Needed</span>
   </div>
 
   <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
-    <span class="text-3xl font-bold text-green-400">{{ active_count }}</span>
-    <span class="text-sm text-gray-500">Active</span>
+    <span class="text-3xl font-bold text-indigo-400">{{ recipes_count }}</span>
+    <span class="text-sm text-gray-500">Active Recipes</span>
   </div>
 
   <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
-    <span class="text-3xl font-bold text-blue-400">{{ done_count }}</span>
-    <span class="text-sm text-gray-500">Done</span>
+    <span class="text-3xl font-bold text-yellow-400">{{ today_calories | int }}</span>
+    <span class="text-sm text-gray-500">Calories Today</span>
+  </div>
+
+  <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
+    <span class="text-3xl font-bold text-blue-400">{{ today_protein | int }}g</span>
+    <span class="text-sm text-gray-500">Protein Today</span>
   </div>
 
 </div>
 
-<!-- Recent Items section — 5 most recently updated, passed from main.py -->
-<h2 class="text-lg font-semibold mb-4 text-gray-300">Recent Items</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-{% if recent_items %}
-<div class="flex flex-col gap-2">
-  {% for item in recent_items %}
-  <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+  <!-- Shopping list preview -->
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-300">Shopping List</h2>
+      <a href="{{ url_for('groceries.index', status='Need') }}"
+         class="text-xs text-indigo-400 hover:underline">View all →</a>
+    </div>
 
-    <!-- Status badge — same color mapping as items/index.html -->
-    {% if item.status == "Active" %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Active</span>
-    {% elif item.status == "Done" %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Done</span>
+    {% if needed_groceries %}
+    <div class="flex flex-col gap-2">
+      {% for item in needed_groceries %}
+      <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Need</span>
+        <span class="flex-1 text-sm font-medium truncate">{{ item.name }}</span>
+        {% if item.category %}
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">{{ item.category }}</span>
+        {% endif %}
+        <a href="{{ url_for('groceries.edit', item_id=item.id) }}"
+           class="shrink-0 text-xs text-gray-500 hover:text-gray-300 transition-colors">Edit →</a>
+      </div>
+      {% endfor %}
+    </div>
     {% else %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Archived</span>
+    <p class="text-gray-500 text-sm">
+      Nothing on the list.
+      <a href="{{ url_for('groceries.add') }}" class="text-indigo-400 hover:underline">Add groceries.</a>
+    </p>
     {% endif %}
-
-    <span class="flex-1 text-sm font-medium truncate">{{ item.name }}</span>
-
-    <!-- Priority stars using the stars() macro from macros.html.
-         Handles None gracefully (renders all gray). -->
-    {{ stars(item.priority) }}
-
-    <a href="{{ url_for('items.edit', item_id=item.id) }}"
-       class="shrink-0 text-xs text-gray-500 hover:text-gray-300 transition-colors">
-      Edit →
-    </a>
   </div>
-  {% endfor %}
+
+  <!-- Today's macro log -->
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-300">Today's Meals</h2>
+      <a href="{{ url_for('macros.index') }}"
+         class="text-xs text-indigo-400 hover:underline">Full log →</a>
+    </div>
+
+    {% if today_entries %}
+    <div class="flex flex-col gap-2">
+      {% for e in today_entries %}
+      <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+        {% if e.meal_label %}
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">{{ e.meal_label }}</span>
+        {% endif %}
+        <span class="flex-1 text-sm font-medium truncate">
+          {{ e.food_name or (e.recipe.name if e.recipe else '—') }}
+        </span>
+        {% if e.calories %}
+        <span class="shrink-0 text-xs text-gray-400">{{ e.calories | int }} kcal</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm">
+      Nothing logged today.
+      <a href="{{ url_for('macros.add') }}" class="text-indigo-400 hover:underline">Add an entry.</a>
+    </p>
+    {% endif %}
+  </div>
+
 </div>
-{% else %}
-<p class="text-gray-500">
-  No items yet. <a href="{{ url_for('items.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
-</p>
-{% endif %}
 {% endblock %}

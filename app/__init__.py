@@ -24,11 +24,17 @@ def create_app(config_name=None):
     # Each blueprint owns a URL prefix and a folder of templates.
     # To add a feature: create app/blueprints/myfeature.py, import it here,
     # register it, and add a nav link in base.html.
-    from app.blueprints.main  import main_bp
-    from app.blueprints.items import items_bp
+    from app.blueprints.main      import main_bp
+    from app.blueprints.groceries import groceries_bp
+    from app.blueprints.recipes   import recipes_bp
+    from app.blueprints.macros    import macros_bp
+    from app.blueprints.api       import api_bp
 
     app.register_blueprint(main_bp)
-    app.register_blueprint(items_bp, url_prefix="/items")
+    app.register_blueprint(groceries_bp, url_prefix="/groceries")
+    app.register_blueprint(recipes_bp,   url_prefix="/recipes")
+    app.register_blueprint(macros_bp,    url_prefix="/macros")
+    app.register_blueprint(api_bp,       url_prefix="/api")
 
     # --- CLI commands ---
     from app.seeds  import seed_command

@@ -1,58 +1,124 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from app import db
 
 
-class Item(db.Model):
-    """Example model — copy this to add your own domain models.
+class Grocery(db.Model):
+    """A grocery list item — tracks what to buy, have on hand, or is out."""
 
-    Each field demonstrates a specific UI/data pattern.
-    See PATTERNS.md for step-by-step guidance on reusing each pattern.
-    """
-
-    __tablename__ = "items"
+    __tablename__ = "groceries"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     # Profile scoping — required on every model.
-    # Always filter queries: Item.query.filter_by(profile_id=profile)
     profile_id = db.Column(db.String(100), nullable=False)
 
-    # Demonstrates: required text input pattern
-    name = db.Column(db.String(200), nullable=False)
+    name     = db.Column(db.String(200), nullable=False)
+    quantity = db.Column(db.Float, nullable=True)         # e.g. 2.0
+    unit     = db.Column(db.String(50),  nullable=True)   # e.g. "lbs", "oz", "each"
+    category = db.Column(db.String(100), nullable=True)   # e.g. "Produce", "Dairy", "Meat"
 
-    # Demonstrates: optional textarea pattern
-    # Use db.Text (unbounded) for long-form / multi-line content.
-    # nullable=True means the field is optional — store None when blank.
-    description = db.Column(db.Text, nullable=True)
-
-    # Demonstrates: star-rating pattern
-    # Integer 1–5; nullable means "not yet rated" (renders as empty stars).
-    # Paired with the .star-btn widget in base.html and the stars() macro in macros.html.
-    priority = db.Column(db.Integer, nullable=True)
-
-    # Demonstrates: enum / status-badge pattern
-    # Fixed set of string values; color-coded in templates with if/elif branches.
-    # To add a new value: update the Enum() list here, add a badge branch in templates,
-    # then run a migration (or db.create_all() on a fresh DB).
     status = db.Column(
-        db.Enum("Active", "Done", "Archived", name="itemstatus"),
+        db.Enum("Need", "Have", "Out", name="grocerystatus"),
+        nullable=False,
+        default="Need",
+    )
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    recipe_ingredients = db.relationship("RecipeIngredient", backref="grocery", lazy=True)
+
+    def __repr__(self):
+        return f"<Grocery profile={self.profile_id!r} name={self.name!r} status={self.status!r}>"
+
+
+class Recipe(db.Model):
+    """A recipe with metadata, ingredients, and optional star rating."""
+
+    __tablename__ = "recipes"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    profile_id = db.Column(db.String(100), nullable=False)
+
+    name          = db.Column(db.String(200), nullable=False)
+    description   = db.Column(db.Text,        nullable=True)
+    servings      = db.Column(db.Integer,     nullable=True)
+    prep_time_min = db.Column(db.Integer,     nullable=True)
+    cook_time_min = db.Column(db.Integer,     nullable=True)
+    instructions  = db.Column(db.Text,        nullable=True)
+    category      = db.Column(db.String(100), nullable=True)  # e.g. "Breakfast", "Dinner"
+    rating        = db.Column(db.Integer,     nullable=True)   # 1–5 star rating
+
+    status = db.Column(
+        db.Enum("Active", "Archived", name="recipestatus"),
         nullable=False,
         default="Active",
     )
 
-    # Demonstrates: free-text grouping / tag pattern
-    # Good for loose, user-defined categories. For a strict fixed set,
-    # use a FK to a separate Category model instead.
-    category = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    ingredients  = db.relationship(
+        "RecipeIngredient", backref="recipe", lazy=True, cascade="all, delete-orphan"
+    )
+    macro_entries = db.relationship("MacroEntry", backref="recipe", lazy=True)
+
+    def __repr__(self):
+        return f"<Recipe profile={self.profile_id!r} name={self.name!r}>"
+
+
+class RecipeIngredient(db.Model):
+    """An ingredient line in a recipe, optionally linked to a Grocery item."""
+
+    __tablename__ = "recipe_ingredients"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    profile_id = db.Column(db.String(100), nullable=False)
+    recipe_id  = db.Column(db.Integer, db.ForeignKey("recipes.id"),   nullable=False)
+    grocery_id = db.Column(db.Integer, db.ForeignKey("groceries.id"), nullable=True)
+
+    name     = db.Column(db.String(200), nullable=False)  # ingredient display name
+    quantity = db.Column(db.Float,       nullable=True)
+    unit     = db.Column(db.String(50),  nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
-        db.DateTime,
-        nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    def __repr__(self) -> str:
-        return f"<Item profile={self.profile_id!r} name={self.name!r} status={self.status!r}>"
+    def __repr__(self):
+        return f"<RecipeIngredient recipe_id={self.recipe_id} name={self.name!r}>"
+
+
+class MacroEntry(db.Model):
+    """A single meal/food entry in the daily macro log."""
+
+    __tablename__ = "macro_entries"
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+
+    profile_id  = db.Column(db.String(100), nullable=False)
+    date        = db.Column(db.Date,        nullable=False)
+    meal_label  = db.Column(db.String(100), nullable=True)   # e.g. "Breakfast", "Lunch"
+    recipe_id   = db.Column(db.Integer, db.ForeignKey("recipes.id"), nullable=True)
+    food_name   = db.Column(db.String(200), nullable=True)   # for manual entries without a recipe
+    calories    = db.Column(db.Float, nullable=True)
+    protein_g   = db.Column(db.Float, nullable=True)
+    carbs_g     = db.Column(db.Float, nullable=True)
+    fat_g       = db.Column(db.Float, nullable=True)
+    notes       = db.Column(db.Text,  nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    def __repr__(self):
+        return f"<MacroEntry profile={self.profile_id!r} date={self.date} meal={self.meal_label!r}>"

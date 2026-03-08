@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Groceries — {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Groceries</h1>
+  <a href="{{ url_for('groceries.add') }}"
+     class="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+    + Add Item
+  </a>
+</div>
+
+<!-- Filter bar -->
+<div class="flex gap-2 mb-6">
+  <a href="{{ url_for('groceries.index') }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if not status_filter else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    All
+  </a>
+  {% for label in ["Need", "Have", "Out"] %}
+  <a href="{{ url_for('groceries.index', status=label) }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if status_filter == label else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if groceries %}
+
+<!-- Bulk "Mark as Need" form — checkboxes use form="bulk-form" to associate without nesting -->
+<form id="bulk-form" method="post" action="{{ url_for('groceries.bulk_need') }}"></form>
+
+<div class="flex items-center gap-3 mb-3">
+  <button type="submit" form="bulk-form"
+          class="px-3 py-1.5 bg-green-800 hover:bg-green-700 rounded text-sm text-green-200 transition-colors">
+    Mark Selected as Need
+  </button>
+  <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
+    <input type="checkbox" id="select-all" class="rounded accent-indigo-500"> Select all
+  </label>
+</div>
+
+<div class="flex flex-col gap-2">
+  {% for item in groceries %}
+  <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+
+    <!-- Checkbox associated with the bulk-form above -->
+    <input type="checkbox" name="item_ids" value="{{ item.id }}" form="bulk-form"
+           class="bulk-check rounded accent-indigo-500 shrink-0">
+
+    <!-- Status badge: green=Need, blue=Have, gray=Out -->
+    {% if item.status == "Need" %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Need</span>
+    {% elif item.status == "Have" %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Have</span>
+    {% else %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Out</span>
+    {% endif %}
+
+    <div class="flex-1 min-w-0">
+      <p class="font-medium truncate">{{ item.name }}</p>
+      {% if item.quantity or item.unit %}
+      <p class="text-xs text-gray-500 mt-0.5">
+        {{ item.quantity | string | replace('.0', '') if item.quantity else '' }}{{ ' ' + item.unit if item.unit else '' }}
+      </p>
+      {% endif %}
+    </div>
+
+    {% if item.category %}
+    <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">
+      {{ item.category }}
+    </span>
+    {% endif %}
+
+    <a href="{{ url_for('groceries.edit', item_id=item.id) }}"
+       class="shrink-0 text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
+      Edit
+    </a>
+    <form method="post" action="{{ url_for('groceries.delete', item_id=item.id) }}"
+          onsubmit="return confirm('Delete \'{{ item.name }}\'?')">
+      <button class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 transition-colors">
+        Delete
+      </button>
+    </form>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<p class="text-gray-500">
+  {% if status_filter %}
+    No {{ status_filter | lower }} items.
+    <a href="{{ url_for('groceries.index') }}" class="text-indigo-400 hover:underline">Show all.</a>
+  {% else %}
+    No groceries yet. <a href="{{ url_for('groceries.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
+  {% endif %}
+</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.getElementById('select-all').addEventListener('change', function () {
+  document.querySelectorAll('.bulk-check').forEach(function (cb) {
+    cb.checked = this.checked;
+  }, this);
+});
+</script>
+{% endblock %}

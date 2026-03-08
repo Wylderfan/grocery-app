@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Recipes — {{ config.APP_NAME }}{% endblock %}
+
+{% from "macros.html" import stars %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Recipes</h1>
+  <a href="{{ url_for('recipes.add') }}"
+     class="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+    + Add Recipe
+  </a>
+</div>
+
+<!-- Category filter bar -->
+<div class="flex flex-wrap gap-2 mb-6">
+  <a href="{{ url_for('recipes.index') }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if not category_filter else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    All
+  </a>
+  {% for cat in all_categories %}
+  <a href="{{ url_for('recipes.index', category=cat) }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if category_filter == cat else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    {{ cat }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if recipes %}
+<div class="flex flex-col gap-3">
+  {% for recipe in recipes %}
+  <div class="bg-gray-900 rounded-lg px-4 py-4">
+    <div class="flex items-start gap-3">
+
+      <!-- Status badge -->
+      {% if recipe.status == "Active" %}
+        <span class="shrink-0 mt-0.5 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Active</span>
+      {% else %}
+        <span class="shrink-0 mt-0.5 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Archived</span>
+      {% endif %}
+
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="font-medium">{{ recipe.name }}</p>
+          {% if recipe.category %}
+          <span class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">{{ recipe.category }}</span>
+          {% endif %}
+          {{ stars(recipe.rating) }}
+        </div>
+        {% if recipe.description %}
+        <p class="text-xs text-gray-500 mt-1 truncate">{{ recipe.description }}</p>
+        {% endif %}
+        <div class="flex gap-4 mt-1.5 text-xs text-gray-600">
+          {% if recipe.servings %}
+          <span>{{ recipe.servings }} serving{{ 's' if recipe.servings != 1 }}</span>
+          {% endif %}
+          {% if recipe.prep_time_min %}
+          <span>Prep {{ recipe.prep_time_min }} min</span>
+          {% endif %}
+          {% if recipe.cook_time_min %}
+          <span>Cook {{ recipe.cook_time_min }} min</span>
+          {% endif %}
+          {% if recipe.ingredients %}
+          <span>{{ recipe.ingredients | length }} ingredient{{ 's' if recipe.ingredients | length != 1 }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex gap-2 shrink-0">
+        <a href="{{ url_for('recipes.view', recipe_id=recipe.id) }}"
+           class="text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
+          View
+        </a>
+        <a href="{{ url_for('recipes.edit', recipe_id=recipe.id) }}"
+           class="text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
+          Edit
+        </a>
+        <form method="post" action="{{ url_for('recipes.delete', recipe_id=recipe.id) }}"
+              onsubmit="return confirm('Delete \'{{ recipe.name }}\'?')">
+          <button class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 transition-colors">
+            Delete
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<p class="text-gray-500">
+  {% if category_filter %}
+    No {{ category_filter }} recipes.
+    <a href="{{ url_for('recipes.index') }}" class="text-indigo-400 hover:underline">Show all.</a>
+  {% else %}
+    No recipes yet. <a href="{{ url_for('recipes.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
+  {% endif %}
+</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Edit Entry — {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('macros.index', date=entry.date.isoformat()) }}"
+       class="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Macro Log</a>
+    <h1 class="text-2xl font-bold">Edit Entry</h1>
+  </div>
+
+  <form method="post" class="flex flex-col gap-5">
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="date" class="block text-sm text-gray-400 mb-1">Date <span class="text-red-400">*</span></label>
+        <input type="date" id="date" name="date" required
+               value="{{ entry.date.isoformat() }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="meal_label" class="block text-sm text-gray-400 mb-1">Meal</label>
+        <input type="text" id="meal_label" name="meal_label"
+               value="{{ entry.meal_label or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors"
+               placeholder="Breakfast, Lunch, Snack…">
+      </div>
+    </div>
+
+    <div>
+      <label for="food_name" class="block text-sm text-gray-400 mb-1">Food Name</label>
+      <input type="text" id="food_name" name="food_name" autofocus
+             value="{{ entry.food_name or '' }}"
+             class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                    focus:outline-none focus:border-indigo-500 transition-colors"
+             placeholder="e.g. Turkey Sandwich">
+    </div>
+
+    <div>
+      <label for="recipe_id" class="block text-sm text-gray-400 mb-1">Recipe (optional)</label>
+      <select id="recipe_id" name="recipe_id"
+              class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                     focus:outline-none focus:border-indigo-500 transition-colors">
+        <option value="">— none —</option>
+        {% for r in recipes %}
+        <option value="{{ r.id }}" {{ 'selected' if entry.recipe_id == r.id else '' }}>{{ r.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="calories" class="block text-sm text-gray-400 mb-1">Calories (kcal)</label>
+        <input type="number" id="calories" name="calories" step="0.1" min="0"
+               value="{{ entry.calories or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="protein_g" class="block text-sm text-gray-400 mb-1">Protein (g)</label>
+        <input type="number" id="protein_g" name="protein_g" step="0.1" min="0"
+               value="{{ entry.protein_g or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="carbs_g" class="block text-sm text-gray-400 mb-1">Carbs (g)</label>
+        <input type="number" id="carbs_g" name="carbs_g" step="0.1" min="0"
+               value="{{ entry.carbs_g or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+      <div>
+        <label for="fat_g" class="block text-sm text-gray-400 mb-1">Fat (g)</label>
+        <input type="number" id="fat_g" name="fat_g" step="0.1" min="0"
+               value="{{ entry.fat_g or '' }}"
+               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                      focus:outline-none focus:border-indigo-500 transition-colors">
+      </div>
+    </div>
+
+    <div>
+      <label for="notes" class="block text-sm text-gray-400 mb-1">Notes</label>
+      <textarea id="notes" name="notes" rows="2"
+                class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                       focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+                >{{ entry.notes or '' }}</textarea>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit"
+              class="px-5 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+        Save Changes
+      </button>
+      <a href="{{ url_for('macros.index', date=entry.date.isoformat()) }}"
+         class="px-5 py-2 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-300 transition-colors">
+        Cancel
+      </a>
+    </div>
+
+  </form>
+
+  <!-- Delete -->
+  <div class="mt-8 pt-6 border-t border-gray-800">
+    <form method="post" action="{{ url_for('macros.delete', entry_id=entry.id) }}"
+          onsubmit="return confirm('Delete this entry?')">
+      <button class="px-4 py-2 bg-red-900 hover:bg-red-800 rounded text-sm text-red-200 transition-colors">
+        Delete Entry
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

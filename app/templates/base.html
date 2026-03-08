@@ -17,9 +17,17 @@
        class="text-sm transition-colors {{ 'text-white font-medium' if request.path == '/' else 'text-gray-400 hover:text-white' }}">
       Dashboard
     </a>
-    <a href="{{ url_for('items.index') }}"
-       class="text-sm transition-colors {{ 'text-white font-medium' if request.path.startswith('/items') else 'text-gray-400 hover:text-white' }}">
-      Items
+    <a href="{{ url_for('groceries.index') }}"
+       class="text-sm transition-colors {{ 'text-white font-medium' if request.path.startswith('/groceries') else 'text-gray-400 hover:text-white' }}">
+      Groceries
+    </a>
+    <a href="{{ url_for('recipes.index') }}"
+       class="text-sm transition-colors {{ 'text-white font-medium' if request.path.startswith('/recipes') else 'text-gray-400 hover:text-white' }}">
+      Recipes
+    </a>
+    <a href="{{ url_for('macros.index') }}"
+       class="text-sm transition-colors {{ 'text-white font-medium' if request.path.startswith('/macros') else 'text-gray-400 hover:text-white' }}">
+      Macros
     </a>
 
     <!-- Profile switcher — rendered automatically when PROFILES has more than one entry.

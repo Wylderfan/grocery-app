@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.name }} — {{ config.APP_NAME }}{% endblock %}
+
+{% from "macros.html" import stars %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <div class="flex items-center gap-3 mb-6 flex-wrap">
+    <a href="{{ url_for('recipes.index') }}" class="text-gray-500 hover:text-gray-300 text-sm transition-colors">← Recipes</a>
+    <h1 class="text-2xl font-bold flex-1">{{ recipe.name }}</h1>
+    <a href="{{ url_for('recipes.edit', recipe_id=recipe.id) }}"
+       class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-colors">
+      Edit
+    </a>
+  </div>
+
+  <!-- Meta row -->
+  <div class="flex flex-wrap items-center gap-3 mb-6">
+    {% if recipe.status == "Active" %}
+      <span class="text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Active</span>
+    {% else %}
+      <span class="text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Archived</span>
+    {% endif %}
+    {% if recipe.category %}
+    <span class="text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">{{ recipe.category }}</span>
+    {% endif %}
+    {{ stars(recipe.rating) }}
+    {% if recipe.servings %}
+    <span class="text-sm text-gray-500">{{ recipe.servings }} serving{{ 's' if recipe.servings != 1 }}</span>
+    {% endif %}
+    {% if recipe.prep_time_min %}
+    <span class="text-sm text-gray-500">Prep {{ recipe.prep_time_min }} min</span>
+    {% endif %}
+    {% if recipe.cook_time_min %}
+    <span class="text-sm text-gray-500">Cook {{ recipe.cook_time_min }} min</span>
+    {% endif %}
+  </div>
+
+  {% if recipe.description %}
+  <p class="text-gray-300 mb-6">{{ recipe.description }}</p>
+  {% endif %}
+
+  <!-- Ingredients -->
+  {% if recipe.ingredients %}
+  <h2 class="text-lg font-semibold text-gray-300 mb-3">Ingredients</h2>
+  <div class="bg-gray-900 rounded-lg divide-y divide-gray-800 mb-6">
+    {% for ing in recipe.ingredients %}
+    <div class="flex items-center gap-3 px-4 py-2.5">
+      <span class="flex-1 text-sm">{{ ing.name }}</span>
+      {% if ing.quantity or ing.unit %}
+      <span class="text-sm text-gray-400">
+        {{ ing.quantity | string | replace('.0', '') if ing.quantity else '' }}{{ ' ' + ing.unit if ing.unit else '' }}
+      </span>
+      {% endif %}
+      {% if ing.grocery %}
+      <a href="{{ url_for('groceries.edit', item_id=ing.grocery.id) }}"
+         class="text-xs text-indigo-400 hover:underline">{{ ing.grocery.status }}</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Instructions -->
+  {% if recipe.instructions %}
+  <h2 class="text-lg font-semibold text-gray-300 mb-3">Instructions</h2>
+  <div class="bg-gray-900 rounded-lg px-4 py-4 text-sm text-gray-300 whitespace-pre-line mb-6">
+    {{ recipe.instructions }}
+  </div>
+  {% endif %}
+
+  <!-- Macro log stats (from logged entries) -->
+  {% if log_count %}
+  <h2 class="text-lg font-semibold text-gray-300 mb-3">Macro Log Stats</h2>
+  <div class="bg-gray-900 rounded-lg px-4 py-4 mb-6">
+    <p class="text-xs text-gray-500 mb-3">Average per entry across {{ log_count }} logged meal{{ 's' if log_count != 1 }}:</p>
+    <div class="grid grid-cols-4 gap-4">
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-yellow-400">{{ log_avg.calories }}</span>
+        <span class="text-xs text-gray-500">kcal</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-blue-400">{{ log_avg.protein_g }}g</span>
+        <span class="text-xs text-gray-500">protein</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-green-400">{{ log_avg.carbs_g }}g</span>
+        <span class="text-xs text-gray-500">carbs</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-orange-400">{{ log_avg.fat_g }}g</span>
+        <span class="text-xs text-gray-500">fat</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="flex gap-3">
+    <a href="{{ url_for('macros.add') }}"
+       class="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+      + Log This Recipe
+    </a>
+  </div>
+
+</div>
+{% endblock %}

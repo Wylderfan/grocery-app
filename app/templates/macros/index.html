@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Macros — {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <h1 class="text-2xl font-bold">Macro Log</h1>
+  <a href="{{ url_for('macros.add', date=view_date.isoformat()) }}"
+     class="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+    + Log Meal
+  </a>
+</div>
+
+<!-- Date navigation -->
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('macros.index', date=prev_date.isoformat()) }}"
+     class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-400 hover:text-white transition-colors">
+    ← Prev
+  </a>
+
+  <form method="get" class="flex items-center gap-2">
+    <input type="date" name="date" value="{{ view_date.isoformat() }}"
+           onchange="this.form.submit()"
+           class="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm text-gray-100
+                  focus:outline-none focus:border-indigo-500 transition-colors">
+  </form>
+
+  <a href="{{ url_for('macros.index', date=next_date.isoformat()) }}"
+     class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded text-sm text-gray-400 hover:text-white transition-colors">
+    Next →
+  </a>
+
+  {% if view_date != today %}
+  <a href="{{ url_for('macros.index') }}"
+     class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm text-gray-300 transition-colors">
+    Today
+  </a>
+  {% endif %}
+
+  <span class="text-sm text-gray-500">
+    {{ view_date.strftime('%A, %B %-d, %Y') }}
+    {% if view_date == today %}<span class="text-indigo-400 ml-1">(today)</span>{% endif %}
+  </span>
+</div>
+
+{% if entries %}
+
+<!-- Entries list -->
+<div class="flex flex-col gap-2 mb-6">
+  {% for e in entries %}
+  <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+
+    {% if e.meal_label %}
+    <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">{{ e.meal_label }}</span>
+    {% endif %}
+
+    <div class="flex-1 min-w-0">
+      <p class="font-medium text-sm truncate">
+        {{ e.food_name or (e.recipe.name if e.recipe else '—') }}
+      </p>
+    </div>
+
+    <!-- Macro pills -->
+    <div class="flex gap-3 text-xs text-gray-400 shrink-0">
+      {% if e.calories is not none %}
+      <span class="text-yellow-400">{{ e.calories | int }} kcal</span>
+      {% endif %}
+      {% if e.protein_g is not none %}
+      <span class="text-blue-400">P {{ e.protein_g | int }}g</span>
+      {% endif %}
+      {% if e.carbs_g is not none %}
+      <span class="text-green-400">C {{ e.carbs_g | int }}g</span>
+      {% endif %}
+      {% if e.fat_g is not none %}
+      <span class="text-orange-400">F {{ e.fat_g | int }}g</span>
+      {% endif %}
+    </div>
+
+    <a href="{{ url_for('macros.edit', entry_id=e.id) }}"
+       class="shrink-0 text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
+      Edit
+    </a>
+    <form method="post" action="{{ url_for('macros.delete', entry_id=e.id) }}"
+          onsubmit="return confirm('Delete this entry?')">
+      <button class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 transition-colors">
+        Delete
+      </button>
+    </form>
+
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Daily totals row -->
+<div class="bg-gray-900 rounded-xl px-4 py-4">
+  <p class="text-xs text-gray-500 mb-3 uppercase tracking-wide">Daily Totals</p>
+  <div class="grid grid-cols-4 gap-4">
+    <div class="flex flex-col">
+      <span class="text-2xl font-bold text-yellow-400">{{ totals.calories | int }}</span>
+      <span class="text-xs text-gray-500">kcal</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-2xl font-bold text-blue-400">{{ totals.protein_g | int }}g</span>
+      <span class="text-xs text-gray-500">protein</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-2xl font-bold text-green-400">{{ totals.carbs_g | int }}g</span>
+      <span class="text-xs text-gray-500">carbs</span>
+    </div>
+    <div class="flex flex-col">
+      <span class="text-2xl font-bold text-orange-400">{{ totals.fat_g | int }}g</span>
+      <span class="text-xs text-gray-500">fat</span>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<p class="text-gray-500">
+  No entries for this day.
+  <a href="{{ url_for('macros.add', date=view_date.isoformat()) }}" class="text-indigo-400 hover:underline">Log a meal.</a>
+</p>
+{% endif %}
+{% endblock %}
