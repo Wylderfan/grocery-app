@@ -1,0 +1,29 @@
+# Environment — never commit real credentials
+.env
+
+# SQLite dev database
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# SQL backups (keep the .gitkeep placeholder)
+backups/*.sql
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
