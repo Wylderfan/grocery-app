@@ -10,52 +10,55 @@
   </a>
 </div>
 
-<!-- Filter bar -->
+<!-- View tabs -->
 <div class="flex gap-2 mb-6">
-  <a href="{{ url_for('groceries.index') }}"
+  <a href="{{ url_for('groceries.index', status='Need') }}"
      class="px-3 py-1.5 rounded text-sm transition-colors
-            {{ 'bg-indigo-700 text-white' if not status_filter else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+            {{ 'bg-indigo-700 text-white' if status_filter == 'Need' and not show_all else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    Shopping List
+  </a>
+  <a href="{{ url_for('groceries.index', status='Have') }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if status_filter == 'Have' and not show_all else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    Have
+  </a>
+  <a href="{{ url_for('groceries.index', status='all') }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if show_all else 'bg-gray-800 text-gray-400 hover:text-white' }}">
     All
   </a>
-  {% for label in ["Need", "Have", "Out"] %}
-  <a href="{{ url_for('groceries.index', status=label) }}"
-     class="px-3 py-1.5 rounded text-sm transition-colors
-            {{ 'bg-indigo-700 text-white' if status_filter == label else 'bg-gray-800 text-gray-400 hover:text-white' }}">
-    {{ label }}
-  </a>
-  {% endfor %}
 </div>
 
 {% if groceries %}
 
-<!-- Bulk "Mark as Need" form — checkboxes use form="bulk-form" to associate without nesting -->
-<form id="bulk-form" method="post" action="{{ url_for('groceries.bulk_need') }}"></form>
-
+{% if status_filter == "Need" and not show_all %}
+<!-- Bulk checkout — checkboxes use form="bulk-form" to stay out of nested forms -->
+<form id="bulk-form" method="post" action="{{ url_for('groceries.bulk_have') }}"></form>
 <div class="flex items-center gap-3 mb-3">
   <button type="submit" form="bulk-form"
-          class="px-3 py-1.5 bg-green-800 hover:bg-green-700 rounded text-sm text-green-200 transition-colors">
-    Mark Selected as Need
+          class="px-3 py-1.5 bg-blue-800 hover:bg-blue-700 rounded text-sm text-blue-200 transition-colors">
+    ✓ Got Selected
   </button>
   <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
     <input type="checkbox" id="select-all" class="rounded accent-indigo-500"> Select all
   </label>
 </div>
+{% endif %}
 
 <div class="flex flex-col gap-2">
   {% for item in groceries %}
   <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
 
-    <!-- Checkbox associated with the bulk-form above -->
+    {% if status_filter == "Need" and not show_all %}
     <input type="checkbox" name="item_ids" value="{{ item.id }}" form="bulk-form"
            class="bulk-check rounded accent-indigo-500 shrink-0">
+    {% endif %}
 
-    <!-- Status badge: green=Need, blue=Have, gray=Out -->
+    <!-- Status badge: green=Need (on list), blue=Have -->
     {% if item.status == "Need" %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Need</span>
-    {% elif item.status == "Have" %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Have</span>
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">On List</span>
     {% else %}
-      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Out</span>
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Have</span>
     {% endif %}
 
     <div class="flex-1 min-w-0">
@@ -71,6 +74,21 @@
     <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">
       {{ item.category }}
     </span>
+    {% endif %}
+
+    <!-- Quick status actions -->
+    {% if item.status == "Need" %}
+    <form method="post" action="{{ url_for('groceries.got_it', item_id=item.id) }}">
+      <button class="shrink-0 text-xs px-3 py-1.5 rounded bg-blue-900 hover:bg-blue-800 text-blue-200 transition-colors">
+        ✓ Got It
+      </button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('groceries.out_of_stock', item_id=item.id) }}">
+      <button class="shrink-0 text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors">
+        Out of Stock
+      </button>
+    </form>
     {% endif %}
 
     <a href="{{ url_for('groceries.edit', item_id=item.id) }}"
@@ -90,11 +108,14 @@
 
 {% else %}
 <p class="text-gray-500">
-  {% if status_filter %}
-    No {{ status_filter | lower }} items.
-    <a href="{{ url_for('groceries.index') }}" class="text-indigo-400 hover:underline">Show all.</a>
-  {% else %}
+  {% if status_filter == "Have" %}
+    Nothing in the pantry yet.
+    <a href="{{ url_for('groceries.index') }}" class="text-indigo-400 hover:underline">View shopping list.</a>
+  {% elif show_all %}
     No groceries yet. <a href="{{ url_for('groceries.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
+  {% else %}
+    Shopping list is empty.
+    <a href="{{ url_for('groceries.add') }}" class="text-indigo-400 hover:underline">Add an item.</a>
   {% endif %}
 </p>
 {% endif %}
@@ -103,10 +124,13 @@
 {% block scripts %}
 {{ super() }}
 <script>
-document.getElementById('select-all').addEventListener('change', function () {
-  document.querySelectorAll('.bulk-check').forEach(function (cb) {
-    cb.checked = this.checked;
-  }, this);
-});
+var selectAll = document.getElementById('select-all');
+if (selectAll) {
+  selectAll.addEventListener('change', function () {
+    document.querySelectorAll('.bulk-check').forEach(function (cb) {
+      cb.checked = this.checked;
+    }, this);
+  });
+}
 </script>
 {% endblock %}
