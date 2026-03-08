@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ config.APP_NAME }}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Nav — APP_NAME from config, active link highlighted by request.path -->
+  <nav class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center gap-6">
+    <span class="font-bold text-lg tracking-tight">{{ config.APP_NAME }}</span>
+
+    <a href="{{ url_for('main.index') }}"
+       class="text-sm transition-colors {{ 'text-white font-medium' if request.path == '/' else 'text-gray-400 hover:text-white' }}">
+      Dashboard
+    </a>
+    <a href="{{ url_for('items.index') }}"
+       class="text-sm transition-colors {{ 'text-white font-medium' if request.path.startswith('/items') else 'text-gray-400 hover:text-white' }}">
+      Items
+    </a>
+
+    <!-- Profile switcher — rendered automatically when PROFILES has more than one entry.
+         Posts to /switch-profile which stores the choice in the Flask session. -->
+    {% if profiles | length > 1 %}
+    <div class="ml-auto relative" id="profile-menu">
+      <button type="button"
+              onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')"
+              class="flex items-center gap-1.5 text-sm text-gray-300 hover:text-white transition-colors px-3 py-1 rounded bg-gray-800 hover:bg-gray-700">
+        <span>{{ current_profile }}</span>
+        <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="profile-dropdown"
+           class="hidden absolute right-0 mt-1 w-40 bg-gray-800 border border-gray-700 rounded shadow-lg z-50">
+        {% for profile in profiles %}
+          {% if profile == current_profile %}
+            <p class="px-4 py-2 text-sm text-indigo-400 font-medium">{{ profile }} ✓</p>
+          {% else %}
+            <form method="post" action="{{ url_for('main.switch_profile') }}">
+              <input type="hidden" name="profile" value="{{ profile }}">
+              <button type="submit"
+                      class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors">
+                {{ profile }}
+              </button>
+            </form>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <span class="ml-auto text-sm text-gray-600">{{ current_profile }}</span>
+    {% endif %}
+  </nav>
+
+  <main class="px-6 py-8 max-w-5xl mx-auto">
+
+    <!-- Flash messages — "success" → green, anything else → red.
+         Usage in Python: flash("message", "success") or flash("message", "error") -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 px-4 py-3 rounded
+            {% if category == 'error' %}bg-red-900 text-red-200
+            {% else %}bg-green-900 text-green-200{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+{% block scripts %}
+<script>
+// Close profile dropdown when clicking outside of it
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('profile-menu');
+  if (menu && !menu.contains(e.target)) {
+    document.getElementById('profile-dropdown').classList.add('hidden');
+  }
+});
+
+// Star rating widget — handles all .star-btn elements on the page.
+//
+// How it works:
+//   Each clickable star is a <button class="star-btn" data-group="FIELD" data-val="1-5">.
+//   There must be a matching <input type="hidden" id="FIELD-val" name="FIELD"> on the page.
+//   Clicking a star at position N:
+//     1. Writes N into the hidden input (this is what the form submits)
+//     2. Colors stars 1–N yellow and stars N+1–5 gray
+//
+// To add a star-rated field to a form:
+//   1. Add the five <button class="star-btn"> elements with data-group="myfield"
+//   2. Add <input type="hidden" id="myfield-val" name="myfield">
+//   3. No other JS needed — this handler picks them up automatically.
+document.querySelectorAll('.star-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var group = this.dataset.group;
+    var val   = parseInt(this.dataset.val);
+
+    // Update the hidden input that gets submitted with the form
+    document.getElementById(group + '-val').value = val;
+
+    // Re-color all stars in this group
+    document.querySelectorAll('[data-group="' + group + '"]').forEach(function(b) {
+      var bVal = parseInt(b.dataset.val);
+      b.classList.toggle('text-yellow-400', bVal <= val);
+      b.classList.toggle('text-gray-600',   bVal >  val);
+    });
+  });
+});
+</script>
+{% endblock %}
+
+</body>
+</html>

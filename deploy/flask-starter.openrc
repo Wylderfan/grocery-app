@@ -1,0 +1,20 @@
+#!/sbin/openrc-run
+
+name="flask-starter"
+description="Flask Starter App"
+
+directory="/path/to/flask-starter"
+command="/path/to/flask-starter/.venv/bin/gunicorn"
+command_args="-w 2 -b <tailscale-ip>:<port> \"app:create_app()\""
+command_user="<your-linux-user>"
+command_background=yes
+pidfile="/run/${RC_SVCNAME}.pid"
+
+depend() {
+    need net
+}
+
+start_pre() {
+    # Load .env into the environment before gunicorn starts
+    export $(grep -v '^#' "${directory}/.env" | xargs)
+}

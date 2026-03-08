@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Items — {{ config.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Items</h1>
+  <a href="{{ url_for('items.add') }}"
+     class="px-4 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
+    + Add Item
+  </a>
+</div>
+
+<!-- Filter bar — copy this pattern to filter any list by an enum field.
+     Each button is a plain link to ?status=<value>. The active filter is highlighted.
+     The route reads request.args.get("status") and applies .filter_by(status=...).
+     To add a new filter value: add a button here and add it to VALID_STATUSES in items.py. -->
+<div class="flex gap-2 mb-6">
+  <a href="{{ url_for('items.index') }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if not status_filter else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    All
+  </a>
+  {% for label in ["Active", "Done", "Archived"] %}
+  <a href="{{ url_for('items.index', status=label) }}"
+     class="px-3 py-1.5 rounded text-sm transition-colors
+            {{ 'bg-indigo-700 text-white' if status_filter == label else 'bg-gray-800 text-gray-400 hover:text-white' }}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if items %}
+  <div class="flex flex-col gap-2">
+    {% for item in items %}
+    <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+
+      <!-- Status badge — color-coded by value.
+           To add a new status: add an elif here + update Enum() in models.py. -->
+      {% if item.status == "Active" %}
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Active</span>
+      {% elif item.status == "Done" %}
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Done</span>
+      {% else %}
+        <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Archived</span>
+      {% endif %}
+
+      <div class="flex-1 min-w-0">
+        <p class="font-medium truncate">{{ item.name }}</p>
+        {% if item.description %}
+        <p class="text-xs text-gray-500 mt-0.5 truncate">{{ item.description }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Category tag — gray pill, hidden when null -->
+      {% if item.category %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded bg-gray-700 text-gray-400">
+        {{ item.category }}
+      </span>
+      {% endif %}
+
+      <!-- Priority stars — filled up to item.priority, dimmed after.
+           Uses inline rendering here; see macros.html stars() for the macro version. -->
+      <span class="shrink-0 text-sm">
+        {% for i in range(1, 6) %}
+          <span class="{{ 'text-yellow-400' if item.priority and i <= item.priority else 'text-gray-700' }}">★</span>
+        {% endfor %}
+      </span>
+
+      <a href="{{ url_for('items.edit', item_id=item.id) }}"
+         class="shrink-0 text-xs px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-200 transition-colors">
+        Edit
+      </a>
+      <form method="post" action="{{ url_for('items.delete', item_id=item.id) }}"
+            onsubmit="return confirm('Delete \'{{ item.name }}\'?')">
+        <button class="text-xs px-3 py-1.5 rounded bg-red-900 hover:bg-red-800 text-red-200 transition-colors">
+          Delete
+        </button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <p class="text-gray-500">
+    {% if status_filter %}
+      No {{ status_filter | lower }} items.
+      <a href="{{ url_for('items.index') }}" class="text-indigo-400 hover:underline">Show all.</a>
+    {% else %}
+      No items yet. <a href="{{ url_for('items.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
+    {% endif %}
+  </p>
+{% endif %}
+{% endblock %}

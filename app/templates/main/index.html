@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ config.APP_NAME }}{% endblock %}
+
+{% from "macros.html" import stars %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-8">Dashboard</h1>
+
+<!-- Stat cards — copy this grid to add metrics for your own models.
+     Color convention used here: gray = total, green = active/in-progress, blue = done/complete.
+     Each card is just a query result dropped into a styled div. -->
+<div class="grid grid-cols-3 gap-4 mb-10">
+
+  <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
+    <span class="text-3xl font-bold text-gray-300">{{ item_count }}</span>
+    <span class="text-sm text-gray-500">Total Items</span>
+  </div>
+
+  <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
+    <span class="text-3xl font-bold text-green-400">{{ active_count }}</span>
+    <span class="text-sm text-gray-500">Active</span>
+  </div>
+
+  <div class="bg-gray-900 rounded-xl p-5 flex flex-col gap-1">
+    <span class="text-3xl font-bold text-blue-400">{{ done_count }}</span>
+    <span class="text-sm text-gray-500">Done</span>
+  </div>
+
+</div>
+
+<!-- Recent Items section — 5 most recently updated, passed from main.py -->
+<h2 class="text-lg font-semibold mb-4 text-gray-300">Recent Items</h2>
+
+{% if recent_items %}
+<div class="flex flex-col gap-2">
+  {% for item in recent_items %}
+  <div class="bg-gray-900 rounded-lg flex items-center gap-3 px-4 py-3">
+
+    <!-- Status badge — same color mapping as items/index.html -->
+    {% if item.status == "Active" %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-300">Active</span>
+    {% elif item.status == "Done" %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-blue-900 text-blue-300">Done</span>
+    {% else %}
+      <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-gray-700 text-gray-400">Archived</span>
+    {% endif %}
+
+    <span class="flex-1 text-sm font-medium truncate">{{ item.name }}</span>
+
+    <!-- Priority stars using the stars() macro from macros.html.
+         Handles None gracefully (renders all gray). -->
+    {{ stars(item.priority) }}
+
+    <a href="{{ url_for('items.edit', item_id=item.id) }}"
+       class="shrink-0 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+      Edit →
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-gray-500">
+  No items yet. <a href="{{ url_for('items.add') }}" class="text-indigo-400 hover:underline">Add one.</a>
+</p>
+{% endif %}
+{% endblock %}
