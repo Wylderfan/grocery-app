@@ -38,11 +38,12 @@ def create_app(config_name=None):
 
     # --- CLI commands ---
     from app.seeds  import seed_command
-    from app.backup import backup_command, restore_command
+    from app.backup import backup_command, restore_command, reset_command
 
     app.cli.add_command(seed_command)
     app.cli.add_command(backup_command)
     app.cli.add_command(restore_command)
+    app.cli.add_command(reset_command)
 
     # --- Context processor ---
     # Injects current_profile (str) and profiles (list) into every template

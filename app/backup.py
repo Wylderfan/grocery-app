@@ -1,4 +1,5 @@
 """
+flask db-reset   — drop all tables, recreate, and reseed (dev only)
 flask db-backup  — dump the MySQL database to a timestamped .sql file
 flask db-restore — restore the database from a .sql file
 """
@@ -10,6 +11,30 @@ from urllib.parse import urlparse
 
 import click
 from flask.cli import with_appcontext
+
+from app import db
+
+
+@click.command("db-reset")
+@click.option("--yes", is_flag=True, help="Skip confirmation prompt.")
+@with_appcontext
+def reset_command(yes):
+    """Drop all tables, recreate them, and reseed. For development only."""
+    if not yes:
+        click.confirm(
+            "This will DESTROY all data and reseed. Continue?", abort=True
+        )
+    from app import models  # noqa: F401 — ensure all models are registered
+    from app.seeds import do_seed
+
+    profiles_env = os.environ.get("PROFILES", "Player 1")
+    profiles = [p.strip() for p in profiles_env.split(",") if p.strip()]
+
+    click.echo("Dropping all tables...")
+    db.drop_all()
+    click.echo("Creating all tables...")
+    db.create_all()
+    do_seed(profiles)
 
 
 def _parse_db_url():

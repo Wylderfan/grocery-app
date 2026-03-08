@@ -8,13 +8,8 @@ from app import db
 from app.models import Grocery, Recipe, RecipeIngredient, MacroEntry
 
 
-@click.command("seed")
-@with_appcontext
-def seed_command():
-    """Wipe and re-seed the database with grocery, recipe, and macro data."""
-    profiles_env = os.environ.get("PROFILES", "Player 1")
-    profiles = [p.strip() for p in profiles_env.split(",") if p.strip()]
-
+def do_seed(profiles):
+    """Core seed logic — callable from both the CLI command and db-reset."""
     click.echo("Clearing existing data...")
     MacroEntry.query.delete()
     RecipeIngredient.query.delete()
@@ -182,3 +177,12 @@ def seed_command():
 
     db.session.commit()
     click.echo(f"Done. Seeded {len(profiles)} profile(s) with groceries, recipes, and macro entries.")
+
+
+@click.command("seed")
+@with_appcontext
+def seed_command():
+    """Wipe and re-seed the database with grocery, recipe, and macro data."""
+    profiles_env = os.environ.get("PROFILES", "Player 1")
+    profiles = [p.strip() for p in profiles_env.split(",") if p.strip()]
+    do_seed(profiles)
