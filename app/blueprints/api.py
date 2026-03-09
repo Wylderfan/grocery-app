@@ -38,7 +38,7 @@ def list_groceries():
     profile       = _profile()
     status_filter = request.args.get("status", "").strip()
     query         = Grocery.query.filter_by(profile_id=profile)
-    if status_filter in ("Need", "Have", "Out"):
+    if status_filter in ("Need", "Have"):
         query = query.filter_by(status=status_filter)
     items = query.order_by(Grocery.category, Grocery.name).all()
     return jsonify([{
@@ -56,7 +56,7 @@ def create_grocery():
     if not name:
         return jsonify({"error": "name is required"}), 400
     status = data.get("status", "Need")
-    if status not in ("Need", "Have", "Out"):
+    if status not in ("Need", "Have"):
         status = "Need"
     g = Grocery(
         profile_id=profile, name=name,
@@ -84,7 +84,7 @@ def update_grocery(item_id):
         g.unit = data["unit"] or None
     if "category" in data:
         g.category = data["category"] or None
-    if "status" in data and data["status"] in ("Need", "Have", "Out"):
+    if "status" in data and data["status"] in ("Need", "Have"):
         g.status = data["status"]
     db.session.commit()
     return jsonify({"id": g.id, "name": g.name, "status": g.status})

@@ -19,7 +19,7 @@ class Grocery(db.Model):
     category = db.Column(db.String(100), nullable=True)   # e.g. "Produce", "Dairy", "Meat"
 
     status = db.Column(
-        db.Enum("Need", "Have", "Out", name="grocerystatus"),
+        db.Enum("Need", "Have", name="grocerystatus"),
         nullable=False,
         default="Need",
     )

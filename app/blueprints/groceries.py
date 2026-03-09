@@ -6,22 +6,33 @@ from app.utils.helpers import current_profile, _float
 
 groceries_bp = Blueprint("groceries", __name__)
 
-VALID_STATUSES = ("Need", "Have", "Out")
+VALID_STATUSES = ("Need", "Have")
 
 
 @groceries_bp.route("/")
 def index():
-    """List groceries for the current profile with optional status filter."""
-    profile = current_profile()
-    status_filter = request.args.get("status", "").strip()
+    """Grocery list — defaults to Shopping List (Need items).
+
+    ?status=Need  → Shopping List (default)
+    ?status=Have  → pantry / items on hand
+    ?status=all   → everything
+    """
+    profile       = current_profile()
+    status_filter = request.args.get("status", "Need").strip()
+    show_all      = status_filter.lower() == "all"
 
     query = Grocery.query.filter_by(profile_id=profile)
-    if status_filter in VALID_STATUSES:
+    if not show_all:
+        if status_filter not in VALID_STATUSES:
+            status_filter = "Need"
         query = query.filter_by(status=status_filter)
 
     groceries = query.order_by(Grocery.category, Grocery.name).all()
     return render_template(
-        "groceries/index.html", groceries=groceries, status_filter=status_filter
+        "groceries/index.html",
+        groceries=groceries,
+        status_filter=status_filter,
+        show_all=show_all,
     )
 
 
@@ -49,7 +60,7 @@ def add():
         db.session.add(item)
         try:
             db.session.commit()
-            flash(f"'{item.name}' added.", "success")
+            flash(f"'{item.name}' added to shopping list.", "success")
             return redirect(url_for("groceries.index"))
         except Exception:
             db.session.rollback()
@@ -111,9 +122,39 @@ def delete(item_id):
     return redirect(url_for("groceries.index"))
 
 
-@groceries_bp.route("/bulk-need", methods=["POST"])
-def bulk_need():
-    """Mark all checked grocery items back to 'Need'."""
+@groceries_bp.route("/<int:item_id>/got-it", methods=["POST"])
+def got_it(item_id):
+    """Quick action — mark an item as Have (got it at the store)."""
+    profile = current_profile()
+    item = Grocery.query.filter_by(id=item_id, profile_id=profile).first_or_404()
+    item.status = "Have"
+    try:
+        db.session.commit()
+        flash(f"'{item.name}' marked as Have.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Something went wrong.", "error")
+    return redirect(request.referrer or url_for("groceries.index"))
+
+
+@groceries_bp.route("/<int:item_id>/out-of-stock", methods=["POST"])
+def out_of_stock(item_id):
+    """Quick action — move a Have item back to the shopping list."""
+    profile = current_profile()
+    item = Grocery.query.filter_by(id=item_id, profile_id=profile).first_or_404()
+    item.status = "Need"
+    try:
+        db.session.commit()
+        flash(f"'{item.name}' added back to shopping list.", "success")
+    except Exception:
+        db.session.rollback()
+        flash("Something went wrong.", "error")
+    return redirect(request.referrer or url_for("groceries.index"))
+
+
+@groceries_bp.route("/bulk-have", methods=["POST"])
+def bulk_have():
+    """Mark all checked shopping list items as Have (bulk checkout)."""
     profile = current_profile()
     raw_ids = request.form.getlist("item_ids")
     ids = [int(i) for i in raw_ids if i.isdigit()]
@@ -121,10 +162,10 @@ def bulk_need():
         Grocery.query.filter(
             Grocery.profile_id == profile,
             Grocery.id.in_(ids),
-        ).update({"status": "Need"}, synchronize_session=False)
+        ).update({"status": "Have"}, synchronize_session=False)
         try:
             db.session.commit()
-            flash(f"{len(ids)} item(s) marked as Need.", "success")
+            flash(f"{len(ids)} item(s) marked as Have.", "success")
         except Exception:
             db.session.rollback()
             flash("Something went wrong.", "error")

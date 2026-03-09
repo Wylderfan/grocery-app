@@ -51,7 +51,7 @@
       <select id="status" name="status"
               class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
                      focus:outline-none focus:border-indigo-500 transition-colors">
-        {% for s in ["Need", "Have", "Out"] %}
+        {% for s in ["Need", "Have"] %}
         <option value="{{ s }}" {{ 'selected' if item.status == s else '' }}>{{ s }}</option>
         {% endfor %}
       </select>

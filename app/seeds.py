@@ -34,7 +34,7 @@ def do_seed(profiles):
             ("Salmon Fillet",   1.0,  "lbs",     "Seafood",   "Need"),
             ("Spinach",         5.0,  "oz",      "Produce",   "Need"),
             ("Oats",            1.0,  "bag",     "Pantry",    "Have"),
-            ("Bananas",         1.0,  "bunch",   "Produce",   "Out"),
+            ("Bananas",         1.0,  "bunch",   "Produce",   "Need"),
         ]
         G = {}  # name → Grocery instance
         for name, qty, unit, cat, status in grocery_rows:
