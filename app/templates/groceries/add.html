@@ -8,9 +8,10 @@
     <h1 class="text-2xl font-bold">Add Grocery</h1>
   </div>
 
-  <form method="post" class="flex flex-col gap-5">
+  <form method="post" class="flex flex-col gap-5" autocomplete="off">
 
-    <div>
+    <!-- Name with autocomplete -->
+    <div class="relative">
       <label for="name" class="block text-sm text-gray-400 mb-1">
         Name <span class="text-red-400">*</span>
       </label>
@@ -18,6 +19,11 @@
              class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
                     focus:outline-none focus:border-indigo-500 transition-colors"
              placeholder="e.g. Chicken Breast">
+      <ul id="ac-list"
+          class="absolute z-10 w-full bg-gray-800 border border-gray-700 rounded mt-1
+                 text-sm text-gray-100 hidden max-h-48 overflow-y-auto shadow-lg">
+      </ul>
+      <p class="text-xs text-gray-600 mt-1">Selecting an existing item pre-fills its saved defaults.</p>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
@@ -33,7 +39,7 @@
         <input type="text" id="unit" name="unit"
                class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
                       focus:outline-none focus:border-indigo-500 transition-colors"
-               placeholder="lbs, oz, each…">
+               placeholder="lbs, cup, each…">
       </div>
     </div>
 
@@ -55,6 +61,44 @@
       </select>
     </div>
 
+    <!-- Macros per unit -->
+    <div>
+      <p class="text-sm text-gray-400 mb-2">
+        Macros <span class="text-gray-600">per 1 <span id="unit-label" class="italic">unit</span></span>
+        <span class="text-xs text-gray-600 ml-1">(optional)</span>
+      </p>
+      <div class="grid grid-cols-4 gap-3">
+        <div>
+          <label for="calories_per_unit" class="block text-xs text-gray-500 mb-1">Calories</label>
+          <input type="number" id="calories_per_unit" name="calories_per_unit" step="0.1" min="0"
+                 class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-2 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors"
+                 placeholder="0">
+        </div>
+        <div>
+          <label for="protein_per_unit" class="block text-xs text-gray-500 mb-1">Protein (g)</label>
+          <input type="number" id="protein_per_unit" name="protein_per_unit" step="0.1" min="0"
+                 class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-2 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors"
+                 placeholder="0">
+        </div>
+        <div>
+          <label for="carbs_per_unit" class="block text-xs text-gray-500 mb-1">Carbs (g)</label>
+          <input type="number" id="carbs_per_unit" name="carbs_per_unit" step="0.1" min="0"
+                 class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-2 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors"
+                 placeholder="0">
+        </div>
+        <div>
+          <label for="fat_per_unit" class="block text-xs text-gray-500 mb-1">Fat (g)</label>
+          <input type="number" id="fat_per_unit" name="fat_per_unit" step="0.1" min="0"
+                 class="w-full bg-gray-800 border border-gray-700 rounded px-2 py-2 text-sm text-gray-100
+                        focus:outline-none focus:border-indigo-500 transition-colors"
+                 placeholder="0">
+        </div>
+      </div>
+    </div>
+
     <div class="flex gap-3 pt-2">
       <button type="submit"
               class="px-5 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
@@ -68,4 +112,84 @@
 
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+(function () {
+  var nameEl = document.getElementById('name');
+  var unitEl = document.getElementById('unit');
+  var qtyEl  = document.getElementById('quantity');
+  var catEl  = document.getElementById('category');
+  var calEl  = document.getElementById('calories_per_unit');
+  var proEl  = document.getElementById('protein_per_unit');
+  var carbEl = document.getElementById('carbs_per_unit');
+  var fatEl  = document.getElementById('fat_per_unit');
+  var label  = document.getElementById('unit-label');
+  var list   = document.getElementById('ac-list');
+  var timer  = null;
+
+  unitEl.addEventListener('input', function () {
+    label.textContent = this.value.trim() || 'unit';
+  });
+
+  function hideList() { list.classList.add('hidden'); list.innerHTML = ''; }
+
+  function fillFrom(item) {
+    nameEl.value = item.name;
+    unitEl.value = item.unit;
+    qtyEl.value  = item.quantity != null ? item.quantity : '';
+    catEl.value  = item.category;
+    calEl.value  = item.calories_per_unit != null ? item.calories_per_unit : '';
+    proEl.value  = item.protein_per_unit  != null ? item.protein_per_unit  : '';
+    carbEl.value = item.carbs_per_unit    != null ? item.carbs_per_unit    : '';
+    fatEl.value  = item.fat_per_unit      != null ? item.fat_per_unit      : '';
+    label.textContent = item.unit || 'unit';
+    hideList();
+    nameEl.focus();
+  }
+
+  function renderList(items) {
+    list.innerHTML = '';
+    if (!items.length) { hideList(); return; }
+    items.forEach(function (item) {
+      var li = document.createElement('li');
+      li.className = 'px-3 py-2 cursor-pointer hover:bg-gray-700 flex justify-between items-center';
+      var left  = document.createElement('span');
+      left.textContent = item.name;
+      var right = document.createElement('span');
+      right.className = 'text-xs text-gray-500';
+      right.textContent = [item.quantity, item.unit].filter(Boolean).join('\u00a0');
+      li.appendChild(left);
+      li.appendChild(right);
+      li.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        fillFrom(item);
+      });
+      list.appendChild(li);
+    });
+    list.classList.remove('hidden');
+  }
+
+  nameEl.addEventListener('input', function () {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (!q) { hideList(); return; }
+    timer = setTimeout(function () {
+      fetch('{{ url_for("groceries.search") }}?q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(renderList);
+    }, 200);
+  });
+
+  nameEl.addEventListener('blur', function () {
+    setTimeout(hideList, 150);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') hideList();
+  });
+})();
+</script>
 {% endblock %}

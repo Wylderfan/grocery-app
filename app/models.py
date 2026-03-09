@@ -24,6 +24,13 @@ class Grocery(db.Model):
         default="Need",
     )
 
+    # Macros per 1 of this item's unit (e.g. per 1 lbs, per 1 cup, per 1 each).
+    # The unit field is the multiplier: recipe_ingredient.quantity × these values.
+    calories_per_unit = db.Column(db.Float, nullable=True)
+    protein_per_unit  = db.Column(db.Float, nullable=True)
+    carbs_per_unit    = db.Column(db.Float, nullable=True)
+    fat_per_unit      = db.Column(db.Float, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -68,6 +75,33 @@ class Recipe(db.Model):
         "RecipeIngredient", backref="recipe", lazy=True, cascade="all, delete-orphan"
     )
     macro_entries = db.relationship("MacroEntry", backref="recipe", lazy=True)
+
+    @property
+    def computed_macros(self):
+        """Sum ingredient quantity × grocery macros_per_unit across all ingredients.
+
+        Returns a dict with cal/protein/carbs/fat totals and a 'complete' flag
+        that is False when any linked grocery is missing macro data.
+        """
+        cal = protein = carbs = fat = 0.0
+        complete = True
+        for ing in self.ingredients:
+            g = ing.grocery
+            if g and g.calories_per_unit is not None:
+                qty = ing.quantity or 0.0
+                cal     += qty * (g.calories_per_unit or 0.0)
+                protein += qty * (g.protein_per_unit  or 0.0)
+                carbs   += qty * (g.carbs_per_unit    or 0.0)
+                fat     += qty * (g.fat_per_unit      or 0.0)
+            else:
+                complete = False
+        return {
+            "calories":  round(cal,     1),
+            "protein_g": round(protein, 1),
+            "carbs_g":   round(carbs,   1),
+            "fat_g":     round(fat,     1),
+            "complete":  complete,
+        }
 
     def __repr__(self):
         return f"<Recipe profile={self.profile_id!r} name={self.name!r}>"

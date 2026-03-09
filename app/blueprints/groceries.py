@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 
 from app import db
 from app.models import Grocery
@@ -36,6 +36,38 @@ def index():
     )
 
 
+@groceries_bp.route("/search")
+def search():
+    """GET /groceries/search?q=<name> — JSON list of matching grocery items for autocomplete."""
+    profile = current_profile()
+    q = request.args.get("q", "").strip()
+    query = Grocery.query.filter_by(profile_id=profile)
+    if q:
+        query = query.filter(Grocery.name.ilike(f"%{q}%"))
+    items = query.order_by(Grocery.name).limit(10).all()
+    return jsonify([{
+        "id":                g.id,
+        "name":              g.name,
+        "quantity":          g.quantity,
+        "unit":              g.unit or "",
+        "category":          g.category or "",
+        "calories_per_unit": g.calories_per_unit,
+        "protein_per_unit":  g.protein_per_unit,
+        "carbs_per_unit":    g.carbs_per_unit,
+        "fat_per_unit":      g.fat_per_unit,
+    } for g in items])
+
+
+def _parse_macro_fields(form):
+    """Extract and return the four macro floats from a form submission."""
+    return (
+        _float(form.get("calories_per_unit", "")),
+        _float(form.get("protein_per_unit",  "")),
+        _float(form.get("carbs_per_unit",    "")),
+        _float(form.get("fat_per_unit",      "")),
+    )
+
+
 @groceries_bp.route("/add", methods=["GET", "POST"])
 def add():
     if request.method == "POST":
@@ -45,6 +77,7 @@ def add():
         unit     = request.form.get("unit",     "").strip() or None
         category = request.form.get("category", "").strip() or None
         status   = request.form.get("status",   "Need").strip()
+        cal, protein, carbs, fat = _parse_macro_fields(request.form)
 
         if not name:
             flash("Name is required.", "error")
@@ -53,14 +86,32 @@ def add():
         if status not in VALID_STATUSES:
             status = "Need"
 
-        item = Grocery(
-            profile_id=profile, name=name, quantity=quantity,
-            unit=unit, category=category, status=status,
-        )
-        db.session.add(item)
+        # Upsert: if an item with this name already exists, update it instead of
+        # creating a duplicate. This covers the "re-add after running out" case.
+        existing = Grocery.query.filter_by(profile_id=profile, name=name).first()
+        if existing:
+            existing.quantity          = quantity
+            existing.unit              = unit
+            existing.category          = category
+            existing.status            = status
+            existing.calories_per_unit = cal
+            existing.protein_per_unit  = protein
+            existing.carbs_per_unit    = carbs
+            existing.fat_per_unit      = fat
+            label = f"'{name}' updated."
+        else:
+            existing = Grocery(
+                profile_id=profile, name=name, quantity=quantity,
+                unit=unit, category=category, status=status,
+                calories_per_unit=cal, protein_per_unit=protein,
+                carbs_per_unit=carbs, fat_per_unit=fat,
+            )
+            db.session.add(existing)
+            label = f"'{name}' added to shopping list."
+
         try:
             db.session.commit()
-            flash(f"'{item.name}' added to shopping list.", "success")
+            flash(label, "success")
             return redirect(url_for("groceries.index"))
         except Exception:
             db.session.rollback()
@@ -81,6 +132,7 @@ def edit(item_id):
         unit     = request.form.get("unit",     "").strip() or None
         category = request.form.get("category", "").strip() or None
         status   = request.form.get("status",   "Need").strip()
+        cal, protein, carbs, fat = _parse_macro_fields(request.form)
 
         if not name:
             flash("Name is required.", "error")
@@ -89,11 +141,15 @@ def edit(item_id):
         if status not in VALID_STATUSES:
             status = "Need"
 
-        item.name     = name
-        item.quantity = quantity
-        item.unit     = unit
-        item.category = category
-        item.status   = status
+        item.name              = name
+        item.quantity          = quantity
+        item.unit              = unit
+        item.category          = category
+        item.status            = status
+        item.calories_per_unit = cal
+        item.protein_per_unit  = protein
+        item.carbs_per_unit    = carbs
+        item.fat_per_unit      = fat
 
         try:
             db.session.commit()
