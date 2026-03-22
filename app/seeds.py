@@ -24,23 +24,28 @@ def do_seed(profiles):
         click.echo(f"  Seeding profile: {profile}")
 
         # ── Groceries ────────────────────────────────────────────────────────
+        # Columns: name, qty, unit, category, status,
+        #          cal/unit, protein/unit, carbs/unit, fat/unit
+        # Units match recipe ingredient units so macro math works consistently.
         grocery_rows = [
-            ("Chicken Breast",  2.0,  "lbs",    "Meat",      "Need"),
-            ("Brown Rice",      1.0,  "bag",     "Pantry",    "Have"),
-            ("Broccoli",        1.0,  "head",    "Produce",   "Need"),
-            ("Eggs",           12.0,  "each",    "Dairy",     "Have"),
-            ("Greek Yogurt",   32.0,  "oz",      "Dairy",     "Need"),
-            ("Olive Oil",       1.0,  "bottle",  "Pantry",    "Have"),
-            ("Salmon Fillet",   1.0,  "lbs",     "Seafood",   "Need"),
-            ("Spinach",         5.0,  "oz",      "Produce",   "Need"),
-            ("Oats",            1.0,  "bag",     "Pantry",    "Have"),
-            ("Bananas",         1.0,  "bunch",   "Produce",   "Need"),
+            ("Chicken Breast", 2.0,  "lbs",  "Meat",    "Need", 500.0, 93.0,   0.0, 11.0),
+            ("Brown Rice",     4.0,  "cup",  "Pantry",  "Have", 685.0, 14.0, 143.0,  5.0),
+            ("Broccoli",       2.0,  "head", "Produce", "Need", 210.0, 14.0,  40.0,  2.0),
+            ("Eggs",          12.0,  "each", "Dairy",   "Have",  78.0,  6.0,   0.6,  5.0),
+            ("Greek Yogurt",   4.0,  "cup",  "Dairy",   "Need", 130.0, 22.0,   9.0,  0.7),
+            ("Olive Oil",     32.0,  "tbsp", "Pantry",  "Have", 119.0,  0.0,   0.0, 14.0),
+            ("Salmon Fillet", 16.0,  "oz",   "Seafood", "Need",  52.0,  7.2,   0.0,  2.5),
+            ("Spinach",       10.0,  "cup",  "Produce", "Need",   7.0,  0.9,   1.1,  0.1),
+            ("Oats",           4.0,  "cup",  "Pantry",  "Have", 307.0, 10.7,  55.0,  5.3),
+            ("Bananas",        5.0,  "each", "Produce", "Need",  89.0,  1.1,  23.0,  0.3),
         ]
         G = {}  # name → Grocery instance
-        for name, qty, unit, cat, status in grocery_rows:
+        for name, qty, unit, cat, status, cal, pro, carb, fat in grocery_rows:
             g = Grocery(
                 profile_id=profile, name=name,
                 quantity=qty, unit=unit, category=cat, status=status,
+                calories_per_unit=cal, protein_per_unit=pro,
+                carbs_per_unit=carb, fat_per_unit=fat,
             )
             db.session.add(g)
             db.session.flush()
@@ -91,8 +96,8 @@ def do_seed(profiles):
         db.session.add(r2)
         db.session.flush()
         for name, qty, unit, gname in [
-            ("Salmon Fillet", 6.0, "oz",   "Salmon Fillet"),
-            ("Spinach",       2.0, "cups", "Spinach"),
+            ("Salmon Fillet", 6.0, "oz",  "Salmon Fillet"),
+            ("Spinach",       2.0, "cup", "Spinach"),
             ("Olive Oil",     1.0, "tbsp", "Olive Oil"),
         ]:
             db.session.add(RecipeIngredient(
@@ -142,9 +147,9 @@ def do_seed(profiles):
         db.session.add(r4)
         db.session.flush()
         for name, qty, unit, gname in [
-            ("Eggs",      3.0, "each",  "Eggs"),
-            ("Spinach",   1.0, "cup",   "Spinach"),
-            ("Olive Oil", 0.5, "tbsp",  "Olive Oil"),
+            ("Eggs",      3.0, "each", "Eggs"),
+            ("Spinach",   1.0, "cup",  "Spinach"),
+            ("Olive Oil", 0.5, "tbsp", "Olive Oil"),
         ]:
             db.session.add(RecipeIngredient(
                 profile_id=profile, recipe_id=r4.id,
