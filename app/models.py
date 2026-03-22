@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from app import db
 
@@ -31,12 +31,28 @@ class Grocery(db.Model):
     carbs_per_unit    = db.Column(db.Float, nullable=True)
     fat_per_unit      = db.Column(db.Float, nullable=True)
 
+    # Expiry tracking — both nullable so existing rows are unaffected.
+    # purchased_date is set automatically by "Got It"; shelf_life_days is user-configured.
+    purchased_date  = db.Column(db.Date,    nullable=True)
+    shelf_life_days = db.Column(db.Integer, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
     recipe_ingredients = db.relationship("RecipeIngredient", backref="grocery", lazy=True)
+
+    @property
+    def days_until_expiry(self):
+        """Return integer days until expiry, or None if either field is missing.
+
+        Negative values mean the item has already expired.
+        """
+        if self.purchased_date is None or self.shelf_life_days is None:
+            return None
+        expiry = self.purchased_date + timedelta(days=self.shelf_life_days)
+        return (expiry - date.today()).days
 
     def __repr__(self):
         return f"<Grocery profile={self.profile_id!r} name={self.name!r} status={self.status!r}>"

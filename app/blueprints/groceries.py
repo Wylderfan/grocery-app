@@ -1,8 +1,10 @@
+from datetime import date
+
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 
 from app import db
 from app.models import Grocery
-from app.utils.helpers import current_profile, _float
+from app.utils.helpers import current_profile, _float, _int
 
 groceries_bp = Blueprint("groceries", __name__)
 
@@ -28,11 +30,21 @@ def index():
         query = query.filter_by(status=status_filter)
 
     groceries = query.order_by(Grocery.category, Grocery.name).all()
+
+    # Compute expiry banner for the pantry (Have) view.
+    expiry_warning_count = 0
+    if status_filter == "Have" and not show_all:
+        for g in groceries:
+            due = g.days_until_expiry
+            if due is not None and due <= 3:
+                expiry_warning_count += 1
+
     return render_template(
         "groceries/index.html",
         groceries=groceries,
         status_filter=status_filter,
         show_all=show_all,
+        expiry_warning_count=expiry_warning_count,
     )
 
 
@@ -68,16 +80,22 @@ def _parse_macro_fields(form):
     )
 
 
+def _parse_shelf_life(form):
+    """Extract shelf_life_days (nullable int) from a form submission."""
+    return _int(form.get("shelf_life_days", ""))
+
+
 @groceries_bp.route("/add", methods=["GET", "POST"])
 def add():
     if request.method == "POST":
-        profile  = current_profile()
-        name     = request.form.get("name",     "").strip()
-        quantity = _float(request.form.get("quantity", ""))
-        unit     = request.form.get("unit",     "").strip() or None
-        category = request.form.get("category", "").strip() or None
-        status   = request.form.get("status",   "Need").strip()
+        profile         = current_profile()
+        name            = request.form.get("name",     "").strip()
+        quantity        = _float(request.form.get("quantity", ""))
+        unit            = request.form.get("unit",     "").strip() or None
+        category        = request.form.get("category", "").strip() or None
+        status          = request.form.get("status",   "Need").strip()
         cal, protein, carbs, fat = _parse_macro_fields(request.form)
+        shelf_life_days = _parse_shelf_life(request.form)
 
         if not name:
             flash("Name is required.", "error")
@@ -98,6 +116,7 @@ def add():
             existing.protein_per_unit  = protein
             existing.carbs_per_unit    = carbs
             existing.fat_per_unit      = fat
+            existing.shelf_life_days   = shelf_life_days
             label = f"'{name}' updated."
         else:
             existing = Grocery(
@@ -105,6 +124,7 @@ def add():
                 unit=unit, category=category, status=status,
                 calories_per_unit=cal, protein_per_unit=protein,
                 carbs_per_unit=carbs, fat_per_unit=fat,
+                shelf_life_days=shelf_life_days,
             )
             db.session.add(existing)
             label = f"'{name}' added to shopping list."
@@ -127,12 +147,13 @@ def edit(item_id):
     item = Grocery.query.filter_by(id=item_id, profile_id=profile).first_or_404()
 
     if request.method == "POST":
-        name     = request.form.get("name",     "").strip()
-        quantity = _float(request.form.get("quantity", ""))
-        unit     = request.form.get("unit",     "").strip() or None
-        category = request.form.get("category", "").strip() or None
-        status   = request.form.get("status",   "Need").strip()
+        name            = request.form.get("name",     "").strip()
+        quantity        = _float(request.form.get("quantity", ""))
+        unit            = request.form.get("unit",     "").strip() or None
+        category        = request.form.get("category", "").strip() or None
+        status          = request.form.get("status",   "Need").strip()
         cal, protein, carbs, fat = _parse_macro_fields(request.form)
+        shelf_life_days = _parse_shelf_life(request.form)
 
         if not name:
             flash("Name is required.", "error")
@@ -150,6 +171,7 @@ def edit(item_id):
         item.protein_per_unit  = protein
         item.carbs_per_unit    = carbs
         item.fat_per_unit      = fat
+        item.shelf_life_days   = shelf_life_days
 
         try:
             db.session.commit()
@@ -180,10 +202,16 @@ def delete(item_id):
 
 @groceries_bp.route("/<int:item_id>/got-it", methods=["POST"])
 def got_it(item_id):
-    """Quick action — mark an item as Have (got it at the store)."""
+    """Quick action — mark an item as Have (got it at the store).
+
+    Sets purchased_date to today only if it hasn't been set already, so that
+    re-clicking "Got It" never overwrites an existing purchase date.
+    """
     profile = current_profile()
     item = Grocery.query.filter_by(id=item_id, profile_id=profile).first_or_404()
     item.status = "Have"
+    if item.purchased_date is None:
+        item.purchased_date = date.today()
     try:
         db.session.commit()
         flash(f"'{item.name}' marked as Have.", "success")
@@ -210,18 +238,27 @@ def out_of_stock(item_id):
 
 @groceries_bp.route("/bulk-have", methods=["POST"])
 def bulk_have():
-    """Mark all checked shopping list items as Have (bulk checkout)."""
+    """Mark all checked shopping list items as Have (bulk checkout).
+
+    Uses a per-row Python loop so purchased_date is set to today only when
+    it hasn't been previously recorded (avoids overwriting an existing date).
+    """
     profile = current_profile()
     raw_ids = request.form.getlist("item_ids")
     ids = [int(i) for i in raw_ids if i.isdigit()]
     if ids:
-        Grocery.query.filter(
+        items = Grocery.query.filter(
             Grocery.profile_id == profile,
             Grocery.id.in_(ids),
-        ).update({"status": "Have"}, synchronize_session=False)
+        ).all()
+        today = date.today()
+        for item in items:
+            item.status = "Have"
+            if item.purchased_date is None:
+                item.purchased_date = today
         try:
             db.session.commit()
-            flash(f"{len(ids)} item(s) marked as Have.", "success")
+            flash(f"{len(items)} item(s) marked as Have.", "success")
         except Exception:
             db.session.rollback()
             flash("Something went wrong.", "error")

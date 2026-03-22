@@ -29,6 +29,12 @@
   </a>
 </div>
 
+{% if status_filter == "Have" and not show_all and expiry_warning_count > 0 %}
+<div class="mb-4 px-4 py-3 rounded-lg bg-orange-950 border border-orange-800 text-orange-300 text-sm">
+  {{ expiry_warning_count }} item{{ 's' if expiry_warning_count != 1 else '' }} expiring soon — cook them first!
+</div>
+{% endif %}
+
 {% if groceries %}
 
 {% if status_filter == "Need" and not show_all %}
@@ -62,7 +68,19 @@
     {% endif %}
 
     <div class="flex-1 min-w-0">
-      <p class="font-medium truncate">{{ item.name }}</p>
+      <div class="flex items-center gap-2">
+        <p class="font-medium truncate">{{ item.name }}</p>
+        {% if status_filter == "Have" and not show_all %}
+          {% set due = item.days_until_expiry %}
+          {% if due is not none %}
+            {% if due <= 0 %}
+              <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-red-950 text-red-400">Expired</span>
+            {% elif due <= 3 %}
+              <span class="shrink-0 text-xs px-2 py-0.5 rounded-full bg-orange-950 text-orange-400">Expires soon</span>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      </div>
       {% if item.quantity or item.unit %}
       <p class="text-xs text-gray-500 mt-0.5">
         {{ item.quantity | string | replace('.0', '') if item.quantity else '' }}{{ ' ' + item.unit if item.unit else '' }}

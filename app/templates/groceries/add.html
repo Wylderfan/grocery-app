@@ -99,6 +99,17 @@
       </div>
     </div>
 
+    <div>
+      <label for="shelf_life_days" class="block text-sm text-gray-400 mb-1">
+        Shelf life (days) <span class="text-xs text-gray-600">(optional)</span>
+      </label>
+      <input type="number" id="shelf_life_days" name="shelf_life_days" min="1" step="1"
+             class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm text-gray-100
+                    focus:outline-none focus:border-indigo-500 transition-colors"
+             placeholder="e.g. 7">
+      <p class="text-xs text-gray-600 mt-1">Used to show expiry warnings in the pantry view.</p>
+    </div>
+
     <div class="flex gap-3 pt-2">
       <button type="submit"
               class="px-5 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-sm transition-colors">
