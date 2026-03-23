@@ -49,7 +49,6 @@ def view(recipe_id):
     log_count = len(entries)
     log_sum = None
     if log_count:
-        # TODO make this fetch from recipe entry in db once macro columns are added
         log_sum = {
             "calories":  round(sum(e.calories  or 0 for e in entries), 1),
             "protein_g": round(sum(e.protein_g or 0 for e in entries), 1),
@@ -94,6 +93,8 @@ def add():
         db.session.flush()  # get recipe.id before adding ingredients
 
         _save_ingredients(recipe.id, profile)
+        db.session.flush()  # make ingredients visible to cache_macros
+        recipe.cache_macros()
 
         try:
             db.session.commit()
@@ -144,6 +145,8 @@ def edit(recipe_id):
         # Replace all ingredients with the submitted set
         RecipeIngredient.query.filter_by(recipe_id=recipe.id).delete()
         _save_ingredients(recipe.id, profile)
+        db.session.flush()  # make new ingredients visible to cache_macros
+        recipe.cache_macros()
 
         try:
             db.session.commit()

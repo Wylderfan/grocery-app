@@ -66,6 +66,17 @@
           <span>{{ recipe.ingredients | length }} ingredient{{ 's' if recipe.ingredients | length != 1 }}</span>
           {% endif %}
         </div>
+        {% if recipe.cached_calories is not none %}
+        <div class="flex gap-3 mt-1.5 text-xs">
+          <span class="text-yellow-500">{{ recipe.cached_calories }} kcal</span>
+          <span class="text-blue-400">P {{ recipe.cached_protein_g }}g</span>
+          <span class="text-green-400">C {{ recipe.cached_carbs_g }}g</span>
+          <span class="text-orange-400">F {{ recipe.cached_fat_g }}g</span>
+          {% if not recipe.macros_complete %}
+          <span class="text-gray-600">(partial)</span>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
 
       <div class="flex gap-2 shrink-0">

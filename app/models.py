@@ -82,6 +82,32 @@ class Recipe(db.Model):
         default="Active",
     )
 
+    # Cached macro totals — computed at write time from ingredients × grocery per-unit macros.
+    # Populated on every recipe create/edit (including ingredient changes); None when no
+    # ingredients are linked or macro data is unavailable for all ingredients.
+    #
+    # Migration SQL for existing databases (run once against a live DB):
+    #
+    #   -- MySQL / MariaDB:
+    #   ALTER TABLE recipes
+    #     ADD COLUMN cached_calories  FLOAT         NULL,
+    #     ADD COLUMN cached_protein_g FLOAT         NULL,
+    #     ADD COLUMN cached_carbs_g   FLOAT         NULL,
+    #     ADD COLUMN cached_fat_g     FLOAT         NULL,
+    #     ADD COLUMN macros_complete  TINYINT(1)    NULL;
+    #
+    #   -- SQLite (one statement per column):
+    #   ALTER TABLE recipes ADD COLUMN cached_calories  REAL;
+    #   ALTER TABLE recipes ADD COLUMN cached_protein_g REAL;
+    #   ALTER TABLE recipes ADD COLUMN cached_carbs_g   REAL;
+    #   ALTER TABLE recipes ADD COLUMN cached_fat_g     REAL;
+    #   ALTER TABLE recipes ADD COLUMN macros_complete  INTEGER;
+    cached_calories  = db.Column(db.Float,   nullable=True)
+    cached_protein_g = db.Column(db.Float,   nullable=True)
+    cached_carbs_g   = db.Column(db.Float,   nullable=True)
+    cached_fat_g     = db.Column(db.Float,   nullable=True)
+    macros_complete  = db.Column(db.Boolean, nullable=True)
+
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -98,6 +124,9 @@ class Recipe(db.Model):
 
         Returns a dict with cal/protein/carbs/fat totals and a 'complete' flag
         that is False when any linked grocery is missing macro data.
+
+        This property is used only on the write path (create/edit) to populate the
+        cached_* columns.  Read paths should use the stored columns directly.
         """
         cal = protein = carbs = fat = 0.0
         complete = True
@@ -118,6 +147,27 @@ class Recipe(db.Model):
             "fat_g":     round(fat,     1),
             "complete":  complete,
         }
+
+    def cache_macros(self):
+        """Compute macros and persist results into the cached_* columns.
+
+        If the recipe has no ingredients, all cached columns are set to None.
+        Call this after any ingredient create/update/delete and before db.session.commit().
+        """
+        if not self.ingredients:
+            self.cached_calories  = None
+            self.cached_protein_g = None
+            self.cached_carbs_g   = None
+            self.cached_fat_g     = None
+            self.macros_complete  = None
+            return
+
+        result = self.computed_macros
+        self.cached_calories  = result["calories"]
+        self.cached_protein_g = result["protein_g"]
+        self.cached_carbs_g   = result["carbs_g"]
+        self.cached_fat_g     = result["fat_g"]
+        self.macros_complete  = result["complete"]
 
     def __repr__(self):
         return f"<Recipe profile={self.profile_id!r} name={self.name!r}>"

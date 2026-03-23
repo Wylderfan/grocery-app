@@ -69,11 +69,40 @@
   </div>
   {% endif %}
 
+  <!-- Cached recipe macros (computed from ingredients at save time) -->
+  {% if recipe.cached_calories is not none %}
+  <h2 class="text-lg font-semibold text-gray-300 mb-3">Recipe Macros</h2>
+  <div class="bg-gray-900 rounded-lg px-4 py-4 mb-6">
+    <p class="text-xs text-gray-500 mb-3">
+      Total from ingredients
+      {%- if not recipe.macros_complete %} <span class="text-yellow-600">(incomplete — some ingredients missing macro data)</span>{% endif %}
+    </p>
+    <div class="grid grid-cols-4 gap-4">
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-yellow-400">{{ recipe.cached_calories }}</span>
+        <span class="text-xs text-gray-500">kcal</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-blue-400">{{ recipe.cached_protein_g }}g</span>
+        <span class="text-xs text-gray-500">protein</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-green-400">{{ recipe.cached_carbs_g }}g</span>
+        <span class="text-xs text-gray-500">carbs</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="text-lg font-bold text-orange-400">{{ recipe.cached_fat_g }}g</span>
+        <span class="text-xs text-gray-500">fat</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Macro log stats (from logged entries) -->
   {% if log_count %}
   <h2 class="text-lg font-semibold text-gray-300 mb-3">Macro Log Stats</h2>
   <div class="bg-gray-900 rounded-lg px-4 py-4 mb-6">
-    <p class="text-xs text-gray-500 mb-3">Sum of macros per serving:</p>
+    <p class="text-xs text-gray-500 mb-3">Sum across {{ log_count }} log {{ 'entry' if log_count == 1 else 'entries' }}:</p>
     <div class="grid grid-cols-4 gap-4">
       <div class="flex flex-col">
         <span class="text-lg font-bold text-yellow-400">{{ log_sum.calories }}</span>
