@@ -53,7 +53,11 @@
                        focus:outline-none focus:border-indigo-500 transition-colors">
           <option value="">— select a recipe —</option>
           {% for r in recipes %}
-          <option value="{{ r.id }}">{{ r.name }}</option>
+          <option value="{{ r.id }}"
+                  data-calories="{{ r.cached_calories if r.cached_calories is not none else '' }}"
+                  data-protein="{{ r.cached_protein_g if r.cached_protein_g is not none else '' }}"
+                  data-carbs="{{ r.cached_carbs_g if r.cached_carbs_g is not none else '' }}"
+                  data-fat="{{ r.cached_fat_g if r.cached_fat_g is not none else '' }}">{{ r.name }}</option>
           {% endfor %}
         </select>
       </div>
@@ -133,6 +137,19 @@ radios.forEach(function (r) {
       document.getElementById('recipe_id').value = '';
     }
   });
+});
+
+// Auto-fill macro fields from cached recipe macros when a recipe is selected.
+document.getElementById('recipe_id').addEventListener('change', function () {
+  var opt = this.options[this.selectedIndex];
+  var cal     = opt.getAttribute('data-calories');
+  var protein = opt.getAttribute('data-protein');
+  var carbs   = opt.getAttribute('data-carbs');
+  var fat     = opt.getAttribute('data-fat');
+  document.getElementById('calories').value  = cal     || '';
+  document.getElementById('protein_g').value = protein || '';
+  document.getElementById('carbs_g').value   = carbs   || '';
+  document.getElementById('fat_g').value     = fat     || '';
 });
 </script>
 {% endblock %}
