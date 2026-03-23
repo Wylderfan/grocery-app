@@ -47,17 +47,18 @@ def view(recipe_id):
     # Aggregate macros from all log entries that used this recipe
     entries = MacroEntry.query.filter_by(profile_id=profile, recipe_id=recipe_id).all()
     log_count = len(entries)
-    log_avg = None
+    log_sum = None
     if log_count:
-        log_avg = {
-            "calories":  round(sum(e.calories  or 0 for e in entries) / log_count, 1),
-            "protein_g": round(sum(e.protein_g or 0 for e in entries) / log_count, 1),
-            "carbs_g":   round(sum(e.carbs_g   or 0 for e in entries) / log_count, 1),
-            "fat_g":     round(sum(e.fat_g     or 0 for e in entries) / log_count, 1),
+        # TODO make this fetch from recipe entry in db once macro columns are added
+        log_sum = {
+            "calories":  round(sum(e.calories  or 0 for e in entries), 1),
+            "protein_g": round(sum(e.protein_g or 0 for e in entries), 1),
+            "carbs_g":   round(sum(e.carbs_g   or 0 for e in entries), 1),
+            "fat_g":     round(sum(e.fat_g     or 0 for e in entries), 1),
         }
 
     return render_template(
-        "recipes/view.html", recipe=recipe, log_count=log_count, log_avg=log_avg
+        "recipes/view.html", recipe=recipe, log_count=log_count, log_sum=log_sum
     )
 
 

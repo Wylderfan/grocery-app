@@ -73,22 +73,22 @@
   {% if log_count %}
   <h2 class="text-lg font-semibold text-gray-300 mb-3">Macro Log Stats</h2>
   <div class="bg-gray-900 rounded-lg px-4 py-4 mb-6">
-    <p class="text-xs text-gray-500 mb-3">Average per entry across {{ log_count }} logged meal{{ 's' if log_count != 1 }}:</p>
+    <p class="text-xs text-gray-500 mb-3">Sum of macros per serving:</p>
     <div class="grid grid-cols-4 gap-4">
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-yellow-400">{{ log_avg.calories }}</span>
+        <span class="text-lg font-bold text-yellow-400">{{ log_sum.calories }}</span>
         <span class="text-xs text-gray-500">kcal</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-blue-400">{{ log_avg.protein_g }}g</span>
+        <span class="text-lg font-bold text-blue-400">{{ log_sum.protein_g }}g</span>
         <span class="text-xs text-gray-500">protein</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-green-400">{{ log_avg.carbs_g }}g</span>
+        <span class="text-lg font-bold text-green-400">{{ log_sum.carbs_g }}g</span>
         <span class="text-xs text-gray-500">carbs</span>
       </div>
       <div class="flex flex-col">
-        <span class="text-lg font-bold text-orange-400">{{ log_avg.fat_g }}g</span>
+        <span class="text-lg font-bold text-orange-400">{{ log_sum.fat_g }}g</span>
         <span class="text-xs text-gray-500">fat</span>
       </div>
     </div>
