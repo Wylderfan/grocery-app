@@ -240,6 +240,20 @@ sudo rc-service flask-starter start
 
 ---
 
+## Applying schema changes
+
+This project does not use a migration tool. When a commit adds new columns or tables, the database must be updated manually.
+
+**Development (wipes all data, recreates schema, and reseeds):**
+
+```bash
+flask db-reset --yes
+```
+
+This is the single command needed after pulling a commit that changes `models.py`. It drops all tables, recreates them from the current models, and runs the seed data automatically — no separate `flask seed` needed.
+
+---
+
 ## Gotchas
 
 - **`db.create_all()` creates no tables** if models haven't been imported first. The app factory handles this at runtime with `from app import models`. In a raw shell, do `from app import db, models` before `db.create_all()`.
